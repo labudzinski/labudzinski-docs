@@ -117,3 +117,63 @@ class Application {
 
 Notice that a special OrderPlacedEvent object has been created and passed to the EventDispatcher.dispatch() method. Now
 each listener of the order.placed event will receive the OrderPlacedEvent event.
+
+#### Using Event Subscribers
+The most common way to listen for an event is to register an event listener with the dispatcher.
+This listener can listen for one or more events and is notified each time these events are sent.
+
+Another way to listen to events is with the event subscriber. The event subscriber is a class that is able to tell the dispatcher exactly which events to subscribe to.
+Implements the com.labudzinski.eventdispatcher.EventSubscriberInterface interface that requires a single static method named getSubscribedEvents().
+Let's take the following example of a subscriber subscribing to the kernel and order events:
+```java
+import com.labudzinski.eventdispatcher.EventSubscriberInterface;
+class Subscriber implements EventSubscriberInterface {
+    @Override
+    public Map<String, Map<EventListenerInterface<Event>, Integer>> getSubscribedEvents() {
+        return new HashMap<>() {{
+            put("kernel", new HashMap<>() {{
+                put(TestRealEventSubscriber::onKernelResponsePre, 0);
+                put(TestRealEventSubscriber::onKernelResponsePost, 0);
+            }});
+            put("order", new HashMap<>() {{
+              put(TestRealEventSubscriber::onStoreOrder, -10);
+            }});
+        }};
+
+        public static Event onKernelResponsePre(Event event) {
+            // ...
+            return event;
+        }
+  
+        public static Event onKernelResponsePost(Event event) {
+            // ...
+            return event;
+        }
+  
+        public static Event onStoreOrder(Event event) {
+            // ...
+            return event;
+        }
+    }
+}
+```
+
+This is very similar to the listening class, except that the class itself can tell the dispatcher what events to listen to.
+To register the subscriber with the dispatcher, use the addSubscriber() method:
+```java
+import com.labudzinski.eventdispatcher.EventDispatcher;
+class Application {
+    public static void main(String[] args) {
+        EventDispatcher dispatcher = new EventDispatcher();
+
+        dispatcher.addSubscriber(new EventSubscriberInterface());
+    }
+}
+```
+
+The dispatcher will automatically register the subscriber for each event returned by the getSubscribedEvents() method.
+This method returns an array indexed by event name whose values are either the name of the method to be invoked or an array
+composed of the name of the method to be invoked and the priority (a positive or negative integer, which defaults to 0).
+
+The above example shows how to register several listeners for the same event on a subscriber, and also shows how to pass priority to each listener method.
+The higher the number, the earlier the method is called. In the example above, after kernel has fired an event, the onKernelResponsePre() and onKernelResponsePost() methods are dispatched in that order. 
